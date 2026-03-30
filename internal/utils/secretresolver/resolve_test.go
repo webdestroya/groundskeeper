@@ -1,4 +1,4 @@
-package secretresolver
+package secretresolver_test
 
 import (
 	"context"
@@ -9,19 +9,20 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/webdestroya/awsmocker"
 	"github.com/webdestroya/groundskeeper/internal/testutil"
+	"github.com/webdestroya/groundskeeper/internal/utils/secretresolver"
 )
 
 func TestResolve(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("EmptyValue", func(t *testing.T) {
-		_, err := Resolve(ctx, "")
+		_, err := secretresolver.Resolve(ctx, "")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not set")
 	})
 
 	t.Run("PlainString", func(t *testing.T) {
-		val, err := Resolve(ctx, "postgres://localhost/db")
+		val, err := secretresolver.Resolve(ctx, "postgres://localhost/db")
 		require.NoError(t, err)
 		assert.Equal(t, "postgres://localhost/db", val)
 	})
@@ -49,7 +50,7 @@ func TestResolve(t *testing.T) {
 			},
 		})
 
-		val, err := Resolve(ctx, "ssm:/app/DATABASE_URL")
+		val, err := secretresolver.Resolve(ctx, "ssm:/app/DATABASE_URL")
 		require.NoError(t, err)
 		assert.Equal(t, "postgres://host/db", val)
 	})
@@ -77,7 +78,7 @@ func TestResolve(t *testing.T) {
 			},
 		})
 
-		val, err := Resolve(ctx, "/app/DATABASE_URL")
+		val, err := secretresolver.Resolve(ctx, "/app/DATABASE_URL")
 		require.NoError(t, err)
 		assert.Equal(t, "postgres://host/db", val)
 	})
@@ -105,7 +106,7 @@ func TestResolve(t *testing.T) {
 			},
 		})
 
-		val, err := Resolve(ctx, "arn:aws:ssm:us-east-1:555555555555:parameter/app/DATABASE_URL")
+		val, err := secretresolver.Resolve(ctx, "arn:aws:ssm:us-east-1:555555555555:parameter/app/DATABASE_URL")
 		require.NoError(t, err)
 		assert.Equal(t, "postgres://host/db", val)
 	})
@@ -130,7 +131,7 @@ func TestResolve(t *testing.T) {
 			},
 		})
 
-		val, err := Resolve(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf")
+		val, err := secretresolver.Resolve(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf")
 		require.NoError(t, err)
 		assert.Equal(t, "postgres://host/db", val)
 	})
@@ -155,7 +156,7 @@ func TestResolve(t *testing.T) {
 			},
 		})
 
-		val, err := Resolve(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf")
+		val, err := secretresolver.Resolve(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf")
 		require.NoError(t, err)
 		assert.Equal(t, "postgres://host/db", val)
 	})
@@ -180,13 +181,13 @@ func TestResolve(t *testing.T) {
 			},
 		})
 
-		val, err := Resolve(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf:password::")
+		val, err := secretresolver.Resolve(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf:password::")
 		require.NoError(t, err)
 		assert.Equal(t, "hunter2", val)
 	})
 
 	t.Run("UnsupportedArnService", func(t *testing.T) {
-		_, err := Resolve(ctx, "arn:aws:s3:::my-bucket")
+		_, err := secretresolver.Resolve(ctx, "arn:aws:s3:::my-bucket")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported ARN service: s3")
 	})
@@ -212,7 +213,7 @@ func TestResolveSecret(t *testing.T) {
 			},
 		})
 
-		_, err := ResolveSecret(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf:badkey::")
+		_, err := secretresolver.ResolveSecret(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf:badkey::")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), `key "badkey" not found in secret`)
 	})
@@ -236,7 +237,7 @@ func TestResolveSecret(t *testing.T) {
 			},
 		})
 
-		raw, err := ResolveSecret(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf")
+		raw, err := secretresolver.ResolveSecret(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf")
 		require.NoError(t, err)
 		assert.Equal(t, json.RawMessage(binaryData), raw)
 	})
@@ -264,7 +265,7 @@ func TestResolveSecret(t *testing.T) {
 			},
 		})
 
-		raw, err := ResolveSecret(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf::AWSPREVIOUS:ver-123")
+		raw, err := secretresolver.ResolveSecret(ctx, "arn:aws:secretsmanager:us-east-1:555555555555:secret:mydb-AbCdEf::AWSPREVIOUS:ver-123")
 		require.NoError(t, err)
 		assert.Equal(t, json.RawMessage("old-db-url"), raw)
 	})
