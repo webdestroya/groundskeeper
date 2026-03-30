@@ -10,8 +10,6 @@ output:
       print-issued-lines: true
 run:
   timeout: 5m
-  build-tags:
-    - darwin
 linters:
   default: none
   enable:
