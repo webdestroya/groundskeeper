@@ -53,7 +53,14 @@ var BaseGithubHTTPClient = &http.Client{
 	Timeout: 30 * time.Second,
 }
 
+var forcedGithubClient *github.Client
+
 func GithubClient(ctx context.Context) (*github.Client, error) {
+
+	if forcedGithubClient != nil {
+		return forcedGithubClient, nil
+	}
+
 	token, err := GithubToken(ctx)
 	if err != nil {
 		return nil, err

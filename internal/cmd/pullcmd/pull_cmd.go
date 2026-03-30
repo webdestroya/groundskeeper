@@ -1,6 +1,7 @@
 package pullcmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/webdestroya/groundskeeper/internal/utils/cmdutil"
 	"github.com/webdestroya/x/logger"
 )
+
+var invokePullRunner func(context.Context, afero.Fs, *cmdutil.RepoPathRef, afero.Fs) error = pullmigrationsrunner.Run
 
 type runner struct {
 	fs   afero.Fs
@@ -37,7 +40,7 @@ func New() *cobra.Command {
 		Args:    cobra.NoArgs,
 	}
 
-	cmdutil.RepoPathRefCmd(cmd, r.from, true)
+	cmdutil.RepoPathRefCmd(cmd, &r.from, true)
 	cmd.Flags().BoolVar(&r.force, "force", false, "Force a pull even if we already have migrations locally. BE CAREFUL")
 
 	return cmd
@@ -82,5 +85,5 @@ func (r *runner) RunE(cmd *cobra.Command, args []string) error {
 	if !r.force {
 		cfgFs = r.fs
 	}
-	return pullmigrationsrunner.Run(cmd.Context(), migFs, r.from, cfgFs)
+	return invokePullRunner(cmd.Context(), migFs, r.from, cfgFs)
 }

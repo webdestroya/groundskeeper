@@ -25,7 +25,7 @@ type runner struct {
 }
 
 func (r *runner) setFlags(cmd *cobra.Command) {
-	cmdutil.RepoPathRefCmd(cmd, r.from, false)
+	cmdutil.RepoPathRefCmd(cmd, &r.from, false)
 	cmdutil.SetupDatabaseFlag(cmd)
 	config.AddProjectConfigFlag(cmd, &r.cfgFile)
 }

@@ -37,7 +37,7 @@ func RepoPathRefFlag(cmd *cobra.Command, dest *string) {
 
 // sets up the parsing from the command
 // returns a PreRunE
-func RepoPathRefCmd(root *cobra.Command, dest *RepoPathRef, required bool) {
+func RepoPathRefCmd(root *cobra.Command, dest **RepoPathRef, required bool) {
 
 	var fromVal string
 
@@ -49,7 +49,7 @@ func RepoPathRefCmd(root *cobra.Command, dest *RepoPathRef, required bool) {
 			if err != nil {
 				return fmt.Errorf(`invalid migration location: %w`, err)
 			}
-			*dest = *rprVal
+			*dest = rprVal
 			return nil
 		}
 
