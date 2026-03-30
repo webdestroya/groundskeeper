@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+dotenv:
+  - .env.development
+
+tasks:
+  
+  dummy:status:
+    cmd: go run . status --dburl $DATABASE_URL
+  
+  dummy:migrate:
+    cmd: go run . migrate --dburl $DATABASE_URL
+  
+  dummy:up:
+    cmd: go run . up --dburl $DATABASE_URL
+  
+  outdated:
+    desc: List direct dependencies with available updates
+    cmds: 
+      - go list -u -m -f '{{`{{if not .Indirect}}{{if .Update}}{{.}}{{end}}{{end}}`}}' all
+
+  lint:
+    desc: Run golangci-lint
+    silent: true
+    cmds:
+      - golangci-lint run && echo "Code passed lint check!"
+
+  test:
+    cmd: go test -v ./...
+
+  test:config:
+    cmd: go run . config --github
+
+  test:release:
+    desc: Test the build
+    cmd: goreleaser release --skip publish,sign --clean --snapshot --parallelism 4

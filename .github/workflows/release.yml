@@ -1,0 +1,71 @@
+#
+# Releaser workflow setup
+# https://goreleaser.com/ci/actions/
+#
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # needed to write releases
+  id-token: write # needed for keyless signing
+  packages: write # needed for ghcr access
+  attestations: write # needed for provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      # - name: Configure AWS Credentials
+      #   uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
+      #   id: awscreds
+      #   with:
+      #     role-to-assume: ${{ secrets.PRODUCTION_AWS_ROLE }}
+      #     aws-region: us-east-1
+      #     managed-session-policies: arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
+
+      # - name: Login to Amazon ECR
+      #   uses: aws-actions/amazon-ecr-login@006813a119ae0fdeb70ae00f16cda21ee6f2ff3d # v2
+      #   id: ecrauth
+      #   with:
+      #     registries: ${{ steps.awscreds.outputs.aws-account-id }}
+      #     mask-password: "true"
+
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6
+        with:
+          go-version-file: go.mod
+
+      - uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+
+      - uses: anchore/sbom-action/download-syft@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
+
+      - uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get GoReleaser version
+        id: goreleaser-version
+        run: echo "version=v$(grep '^goreleaser ' .tool-versions | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@9a127d869fb706213d29cdf8eef3a4ea2b869415 # v7
+        with:
+          distribution: goreleaser
+          args: release --clean
+          version: ${{ steps.goreleaser-version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ECR_REGISTRY: ${{ steps.ecrauth.outputs.registry }}
+
+      - uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+        with:
+          subject-checksums: ./dist/checksums.txt
