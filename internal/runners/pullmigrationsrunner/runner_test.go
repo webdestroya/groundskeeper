@@ -39,7 +39,7 @@ var migrationFiles = []struct {
 // loadTestdata reads a migration file from the migratecmd testdata directory.
 func loadTestdata(t *testing.T, name string) []byte {
 	t.Helper()
-	data, err := os.ReadFile(path.Join("..", "..", "cmd", "migratecmd", "testdata", name))
+	data, err := os.ReadFile(path.Join("..", "..", "cmd", "migratecmd", "testdata", name)) //nolint:forbidigo // it's a test
 	require.NoError(t, err)
 	return data
 }
