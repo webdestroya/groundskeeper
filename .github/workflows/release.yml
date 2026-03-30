@@ -66,6 +66,7 @@ jobs:
           version: ${{ steps.goreleaser-version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_SCOOP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_SCOOP_GITHUB_TOKEN }}
           # ECR_REGISTRY: ${{ steps.ecrauth.outputs.registry }}
 
       - uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
