@@ -2,22 +2,15 @@ package globals
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws/arn"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/google/go-github/v84/github"
-	"github.com/webdestroya/groundskeeper/internal/awsclients/secretsclient"
 	"github.com/webdestroya/groundskeeper/internal/config"
+	"github.com/webdestroya/groundskeeper/internal/utils/secretresolver"
 )
-
-type gkSecret struct {
-	GithubToken string `json:"githubToken,omitempty"`
-}
 
 var (
 	ghTokenMu  sync.Mutex
@@ -46,47 +39,16 @@ func resolveGithubToken(ctx context.Context) (string, error) {
 		return "", errors.New("github token is not set")
 	}
 
-	if !arn.IsARN(value) {
-		return value, nil
-	}
-
-	// Secret is an ARN. Assume it's a secret
-	client, err := secretsclient.New(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := client.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
-		SecretId: &value,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	secretData := resp.SecretBinary
-	if len(secretData) == 0 && resp.SecretString != nil {
-		secretData = []byte(*resp.SecretString)
-	}
-	var secret gkSecret
-	if err := json.Unmarshal(secretData, &secret); err != nil {
-		return "", err
-	}
-
-	return secret.GithubToken, nil
+	return secretresolver.Resolve(ctx, value)
 }
 
 var BaseGithubHTTPClient = &http.Client{
 	Transport: &http.Transport{
-		// Controls connection reuse - false allows reuse, true forces new connections for each request
-		DisableKeepAlives: false,
-		// Maximum concurrent connections per host (active + idle)
-		MaxConnsPerHost: 10,
-		// Maximum idle connections maintained per host for reuse
+		DisableKeepAlives:   false,
+		MaxConnsPerHost:     10,
 		MaxIdleConnsPerHost: 5,
-		// Maximum total idle connections across all hosts
-		MaxIdleConns: 20,
-		// How long an idle connection remains in the pool before being closed
-		IdleConnTimeout: 20 * time.Second,
+		MaxIdleConns:        20,
+		IdleConnTimeout:     20 * time.Second,
 	},
 	Timeout: 30 * time.Second,
 }

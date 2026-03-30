@@ -8,12 +8,12 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/webdestroya/groundskeeper/internal/awsclients/ssmclient"
 	"github.com/webdestroya/groundskeeper/internal/config"
+	"github.com/webdestroya/groundskeeper/internal/utils/secretresolver"
 	"github.com/webdestroya/x/logger"
 	_ "modernc.org/sqlite"
 )
@@ -21,34 +21,11 @@ import (
 func resolveDatabaseUrl(ctx context.Context) (string, error) {
 	databaseUrl := config.DatabaseURL()
 
-	log := logger.Ctx(ctx)
-
 	if databaseUrl == "" {
 		return "", errors.New("database url is missing")
 	}
 
-	// assume SSM
-	if strings.HasPrefix(databaseUrl, `/`) || strings.HasPrefix(databaseUrl, `ssm:`) {
-		databaseUrl = strings.TrimPrefix(databaseUrl, `ssm:`)
-		log.Info().Str("name", databaseUrl).Msg("Looking up SSM Parameter")
-
-		if client, err := ssmclient.New(ctx); err == nil {
-			resp, err := client.GetParameter(ctx, &ssm.GetParameterInput{
-				Name:           &databaseUrl,
-				WithDecryption: new(true),
-			})
-			if err != nil {
-				return "", fmt.Errorf(`unable to resolve SSM parameter: %w`, err)
-			}
-
-			databaseUrl = *resp.Parameter.Value
-		} else {
-
-			return "", fmt.Errorf(`unable to resolve AWS config: %w`, err)
-		}
-	}
-
-	return databaseUrl, nil
+	return secretresolver.Resolve(ctx, databaseUrl)
 }
 
 func connect(ctx context.Context) (*sql.DB, goose.Dialect, error) {
@@ -57,35 +34,38 @@ func connect(ctx context.Context) (*sql.DB, goose.Dialect, error) {
 		return nil, goose.DialectCustom, err
 	}
 
-	uri, err := url.Parse(databaseUrl)
-	if err != nil {
-		logger.Ctx(ctx).Error().Err(err).Str("uri", uri.Redacted()).Msg("invalid database url")
-		return nil, goose.DialectCustom, err
+	if uri, err := url.Parse(databaseUrl); err == nil {
+		logger.Ctx(ctx).Info().Str("database_url", uri.Redacted()).Send()
 	}
 
-	logger.Ctx(ctx).Info().Str("uri", uri.Redacted()).Msg("connecting to database")
+	logger.Ctx(ctx).Info().Msg("connecting to database")
+
+	scheme, dsn, ok := strings.Cut(databaseUrl, `://`)
+	if !ok {
+		return nil, goose.DialectCustom, fmt.Errorf("invalid database url provided")
+	}
 
 	switch {
 
-	case databaseUrl == ":memory:" || strings.HasPrefix(databaseUrl, `sqlite`) || strings.HasPrefix(databaseUrl, `file:`):
-		sqlDB, err := sql.Open("sqlite", databaseUrl)
+	case strings.HasPrefix(scheme, `sqlite`):
+		sqlDB, err := sql.Open("sqlite", dsn)
 		return sqlDB, goose.DialectSQLite3, err
 
-	case strings.HasPrefix(databaseUrl, `mysql`) || strings.HasPrefix(databaseUrl, `maria`):
-		// stdlib.OpenDB()
-		return nil, goose.DialectMySQL, errors.New("MYSQL SUPPORT NOT ENABLED YET")
+	case scheme == `mysql` || scheme == `maria`:
+		sqlDB, err := sql.Open("mysql", dsn)
+		return sqlDB, goose.DialectSQLite3, err
+
+	case strings.HasPrefix(scheme, `postgres`):
+		sqlDB, err := connectPG(databaseUrl)
+		return sqlDB, goose.DialectPostgres, err
 
 	default:
-		sqlDB, err := connectPG(ctx, databaseUrl)
-		return sqlDB, goose.DialectPostgres, err
+		return nil, goose.DialectCustom, fmt.Errorf("unsupported database: %s", scheme)
 	}
 
 }
 
-func connectPG(_ context.Context, databaseUrl string) (*sql.DB, error) {
-
-	// log := logger.Ctx(ctx)
-
+func connectPG(databaseUrl string) (*sql.DB, error) {
 	cfg, err := pgx.ParseConfig(databaseUrl)
 	if err != nil {
 		return nil, fmt.Errorf("parse database url: %w", err)

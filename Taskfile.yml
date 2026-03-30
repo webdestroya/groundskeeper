@@ -32,6 +32,13 @@ tasks:
   test:config:
     cmd: go run . config --github
 
+  test:coverage:
+    desc: Generate test coverage report
+    cmds:
+      - mkdir -p coverage
+      - go test -v ./... -coverpkg=./... -coverprofile=coverage/c.out -covermode=count -short
+      - go tool cover -html=coverage/c.out -o coverage/index.html
+
   test:release:
     desc: Test the build
     cmd: goreleaser release --skip publish,sign --clean --snapshot --parallelism 4

@@ -24,7 +24,13 @@ import (
 // 	AwsConfig = cfg
 // }
 
+var ForcedAwsConfig *aws.Config
+
 func UseDefaultConfig(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
+
+	if ForcedAwsConfig != nil {
+		return *ForcedAwsConfig, nil
+	}
 
 	cfg, err := config.LoadDefaultConfig(
 		ctx,

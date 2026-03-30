@@ -1,0 +1,6 @@
+{
+  "go.toolsEnvVars": {
+    "CGO_ENABLED": "0",
+  },
+  "go.testEnvFile": "${workspaceFolder}/.env.test",
+}
