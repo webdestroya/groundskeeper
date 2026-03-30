@@ -4,6 +4,7 @@ RUN update-ca-certificates
 
 # use busybox instead of scratch because we need some utilities for remote console
 FROM busybox:latest
+ARG TARGETPLATFORM
 
 # Copy CA Certificates
 COPY --from=certloader /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
