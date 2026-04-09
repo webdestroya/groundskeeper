@@ -3,7 +3,7 @@ RUN apk add --no-cache ca-certificates
 RUN update-ca-certificates
 
 # use busybox instead of scratch because we need some utilities for remote console
-FROM busybox:latest
+FROM busybox:stable
 ARG TARGETPLATFORM
 
 # Copy CA Certificates

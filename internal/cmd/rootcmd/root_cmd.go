@@ -47,7 +47,7 @@ func New() *cobra.Command {
 	})
 
 	cmd.AddGroup(&cobra.Group{
-		ID:    "debug",
+		ID:    "debugging",
 		Title: "Debugging Commands:",
 	})
 

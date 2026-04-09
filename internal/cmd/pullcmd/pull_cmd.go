@@ -34,7 +34,7 @@ func New() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "pull",
 		Short:   "Pull migration files. Used within a remote console session",
-		GroupID: "debug",
+		GroupID: "debugging",
 		PreRunE: r.PreRunE,
 		RunE:    r.RunE,
 		Args:    cobra.NoArgs,

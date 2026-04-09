@@ -105,8 +105,10 @@ homebrew_casks:
 dockers_v2:
   - images:
       - "ghcr.io/webdestroya/groundskeeper"
+      - "{{ .Env.ECR_PUBLIC_REGISTRY }}/groundskeeper"
+      - "{{ .Env.ECR_PRIVATE_REGISTRY }}/groundskeeper"
     tags:
-      - "{{ .Tag }}"
+      - "v{{ .Version }}"
       - latest
     labels:
       "org.opencontainers.image.created": "{{.Date}}"
@@ -120,5 +122,5 @@ docker_signs:
     output: true
     args:
       - "sign"
-      - "${artifact}"
+      - "${artifact}@${digest}"
       - "--yes"
