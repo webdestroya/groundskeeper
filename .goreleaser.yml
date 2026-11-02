@@ -95,8 +95,8 @@ homebrew_casks:
       - groundskeeper
     hooks:
       post:
-        install: |
-          system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/groundskeeper"]
+        install_steps: |
+          run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/groundskeeper"]
 
   # -
   #   << : *hbgen
