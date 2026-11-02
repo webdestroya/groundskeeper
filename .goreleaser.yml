@@ -105,7 +105,7 @@ homebrew_casks:
 dockers_v2:
   - images:
       - "ghcr.io/webdestroya/groundskeeper"
-      - "{{ .Env.ECR_PUBLIC_REGISTRY }}/groundskeeper"
+      - "{{ .Env.ECR_PUBLIC_REGISTRY }}/r0y0t7c5/groundskeeper"
       - "{{ .Env.ECR_PRIVATE_REGISTRY }}/groundskeeper"
     tags:
       - "v{{ .Version }}"
